@@ -8,6 +8,7 @@ REPO="https://github.com/BondMachineHQ/bitcachedata.git"
 SOURCE_FILE="example.vhd"
 BITSTREAM_FILE="example.bit"
 TARGET_PATH="builds/examples"
+SSH_KEY=""  # Optional: set to path of SSH key, e.g., ~/.ssh/deploy_key
 
 echo "================================"
 echo "bitcache Example Workflow"
@@ -50,19 +51,36 @@ echo "Source MD5: $MD5"
 # Step 3: Publish the bitstream
 echo ""
 echo "Step 3: Publishing bitstream to repository..."
-echo "Command: bitcache publish --repo $REPO --source $SOURCE_FILE --bitstream $BITSTREAM_FILE --path $TARGET_PATH"
+if [ -n "$SSH_KEY" ]; then
+    echo "Command: bitcache publish --repo $REPO --source $SOURCE_FILE --bitstream $BITSTREAM_FILE --path $TARGET_PATH --ssh-key $SSH_KEY"
+else
+    echo "Command: bitcache publish --repo $REPO --source $SOURCE_FILE --bitstream $BITSTREAM_FILE --path $TARGET_PATH"
+fi
 echo ""
 echo "NOTE: Update REPO variable with your actual git repository URL before running this command"
+echo "NOTE: Optionally set SSH_KEY variable to use a custom SSH private key"
 # Uncomment the line below when you have a real repository
-#bitcache publish --repo "$REPO" --source "$SOURCE_FILE" --bitstream "$BITSTREAM_FILE" --path "$TARGET_PATH"
+#if [ -n "$SSH_KEY" ]; then
+#    bitcache publish --repo "$REPO" --source "$SOURCE_FILE" --bitstream "$BITSTREAM_FILE" --path "$TARGET_PATH" --ssh-key "$SSH_KEY"
+#else
+#    bitcache publish --repo "$REPO" --source "$SOURCE_FILE" --bitstream "$BITSTREAM_FILE" --path "$TARGET_PATH"
+#fi
 
 # Step 4: Retrieve the bitstream (in a real scenario, you'd do this later or on another machine)
 echo ""
 echo "Step 4: To retrieve the bitstream later, use:"
-echo "bitcache get --repo $REPO --md5 $MD5"
+if [ -n "$SSH_KEY" ]; then
+    echo "bitcache get --repo $REPO --md5 $MD5 --ssh-key $SSH_KEY"
+else
+    echo "bitcache get --repo $REPO --md5 $MD5"
+fi
 echo ""
 echo "This will copy the bitstream to your current directory"
-#bitcache get --repo $REPO --md5 $MD5
+#if [ -n "$SSH_KEY" ]; then
+#    bitcache get --repo $REPO --md5 $MD5 --ssh-key $SSH_KEY
+#else
+#    bitcache get --repo $REPO --md5 $MD5
+#fi
 
 # Cleanup
 echo ""

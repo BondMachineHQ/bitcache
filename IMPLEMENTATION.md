@@ -25,9 +25,11 @@ The tool implements exactly the specifications requested:
    - `--source`: Source file for MD5 computation
    - `--bitstream`: Binary file to upload
    - `--path`: Target directory in repository
+   - `--ssh-key` (optional): SSH private key for git operations
 4. ✅ **Get arguments**:
    - `--repo`: Git repository URL
    - `--md5`: MD5 hash to lookup
+   - `--ssh-key` (optional): SSH private key for git operations
 5. ✅ **Publish workflow**:
    - Computes MD5 of source file
    - Uploads binary to repository at given path
@@ -42,6 +44,7 @@ The tool implements exactly the specifications requested:
 
 - **MD5-based tracking**: Each binary is linked to its source via MD5 hash
 - **Git integration**: Fully automated git clone, commit, and push operations
+- **SSH key support**: Optional custom SSH private key for git authentication
 - **Metadata management**: JSON file maintains complete tracking information
 - **Timestamping**: Records when each binary was published
 - **Temporary directories**: Automatically cleaned up after operations
@@ -104,11 +107,20 @@ The tool maintains a `bitcache_metadata.json` file in the repository:
 ### Publishing a Bitstream
 
 ```bash
+# Basic usage
 bitcache publish \
   --repo git@github.com:myorg/bitstreams.git \
   --source design.vhd \
   --bitstream output.bit \
   --path builds/v1.0
+
+# With custom SSH key
+bitcache publish \
+  --repo git@github.com:myorg/bitstreams.git \
+  --source design.vhd \
+  --bitstream output.bit \
+  --path builds/v1.0 \
+  --ssh-key ~/.ssh/deploy_key
 ```
 
 **What happens:**
@@ -121,9 +133,16 @@ bitcache publish \
 ### Retrieving a Bitstream
 
 ```bash
+# Basic usage
 bitcache get \
   --repo git@github.com:myorg/bitstreams.git \
   --md5 a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6
+
+# With custom SSH key
+bitcache get \
+  --repo git@github.com:myorg/bitstreams.git \
+  --md5 a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6 \
+  --ssh-key ~/.ssh/deploy_key
 ```
 
 **What happens:**

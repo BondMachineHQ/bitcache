@@ -70,14 +70,16 @@ bitcache publish \
   --repo <REPOSITORY_URL> \
   --source <SOURCE_FILE> \
   --bitstream <BINARY_FILE> \
-  --path <TARGET_DIRECTORY>
+  --path <TARGET_DIRECTORY> \
+  [--ssh-key <SSH_PRIVATE_KEY_PATH>]
 ```
 
 **Arguments:**
-- `--repo`: Git repository URL (e.g., `https://github.com/user/repo.git`)
+- `--repo`: Git repository URL (e.g., `https://github.com/user/repo.git` or `git@github.com:user/repo.git`)
 - `--source`: Path to the source file (used for MD5 computation)
 - `--bitstream`: Path to the binary file to upload
 - `--path`: Target directory path in the repository where the binary will be stored
+- `--ssh-key` (optional): Path to SSH private key for git operations
 
 **Example:**
 ```bash
@@ -102,12 +104,14 @@ Retrieve a binary file from the repository by its source MD5 hash:
 ```bash
 bitcache get \
   --repo <REPOSITORY_URL> \
-  --md5 <MD5_HASH>
+  --md5 <MD5_HASH> \
+  [--ssh-key <SSH_PRIVATE_KEY_PATH>]
 ```
 
 **Arguments:**
 - `--repo`: Git repository URL
 - `--md5`: MD5 hash of the source file
+- `--ssh-key` (optional): Path to SSH private key for git operations
 
 **Example:**
 ```bash
@@ -156,6 +160,14 @@ bitcache publish \
   --source src/top.vhd \
   --bitstream build/top.bit \
   --path releases/v1.0
+
+# Or with a specific SSH key
+bitcache publish \
+  --repo git@github.com:myorg/fpga-builds.git \
+  --source src/top.vhd \
+  --bitstream build/top.bit \
+  --path releases/v1.0 \
+  --ssh-key ~/.ssh/id_deploy
 ```
 
 Output:
@@ -177,6 +189,12 @@ Successfully published bitstream with MD5: 3f4d8a9b2c1e5f7a8b9c0d1e2f3a4b5c
 bitcache get \
   --repo git@github.com:myorg/fpga-builds.git \
   --md5 3f4d8a9b2c1e5f7a8b9c0d1e2f3a4b5c
+
+# Or with a specific SSH key
+bitcache get \
+  --repo git@github.com:myorg/fpga-builds.git \
+  --md5 3f4d8a9b2c1e5f7a8b9c0d1e2f3a4b5c \
+  --ssh-key ~/.ssh/id_deploy
 ```
 
 Output:
@@ -256,6 +274,11 @@ echo "bitcache get --repo $REPO --md5 $MD5"
    - Ensure you have proper SSH keys or credentials configured
    - Test with `git clone <repo>` manually
    - Use HTTPS URLs with tokens if SSH is not available
+   - Use the `--ssh-key` option to specify a custom SSH private key:
+     ```bash
+     bitcache publish --repo git@github.com:user/repo.git --ssh-key ~/.ssh/my_key ...
+     ```
+   - Ensure the SSH key has proper permissions: `chmod 600 ~/.ssh/my_key`
 
 2. **Permission denied on push**
    - Verify you have write access to the repository

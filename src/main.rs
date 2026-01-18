@@ -94,6 +94,10 @@ enum Commands {
         /// Target directory path in the repository
         #[arg(long)]
         path: PathBuf,
+
+        /// Path to SSH private key for git operations
+        #[arg(long)]
+        ssh_key: Option<PathBuf>,
     },
     /// Get a binary file from the repository by MD5
     Get {
@@ -104,6 +108,10 @@ enum Commands {
         /// MD5 hash of the source file
         #[arg(long)]
         md5: String,
+
+        /// Path to SSH private key for git operations
+        #[arg(long)]
+        ssh_key: Option<PathBuf>,
     },
 }
 
@@ -118,12 +126,19 @@ fn compute_md5(file_path: &Path) -> io::Result<String> {
 }
 
 /// Clone a git repository to a temporary location
-fn clone_repository(repo_url: &str, target_dir: &Path) -> io::Result<()> {
-    let output = Command::new("git")
-        .arg("clone")
+fn clone_repository(repo_url: &str, target_dir: &Path, ssh_key: Option<&Path>) -> io::Result<()> {
+    let mut cmd = Command::new("git");
+    cmd.arg("clone")
         .arg(repo_url)
-        .arg(target_dir)
-        .output()?;
+        .arg(target_dir);
+
+    // If SSH key is provided, set GIT_SSH_COMMAND to use it
+    if let Some(key_path) = ssh_key {
+        let ssh_command = format!("ssh -i {} -o IdentitiesOnly=yes -o StrictHostKeyChecking=no", key_path.display());
+        cmd.env("GIT_SSH_COMMAND", ssh_command);
+    }
+
+    let output = cmd.output()?;
 
     if !output.status.success() {
         return Err(io::Error::new(
@@ -139,7 +154,7 @@ fn clone_repository(repo_url: &str, target_dir: &Path) -> io::Result<()> {
 }
 
 /// Add, commit and push changes to the repository
-fn commit_and_push(repo_dir: &Path, message: &str) -> io::Result<()> {
+fn commit_and_push(repo_dir: &Path, message: &str, ssh_key: Option<&Path>) -> io::Result<()> {
     // Add all changes
     let add_output = Command::new("git")
         .current_dir(repo_dir)
@@ -179,10 +194,16 @@ fn commit_and_push(repo_dir: &Path, message: &str) -> io::Result<()> {
     }
 
     // Push changes
-    let push_output = Command::new("git")
-        .current_dir(repo_dir)
-        .arg("push")
-        .output()?;
+    let mut push_cmd = Command::new("git");
+    push_cmd.current_dir(repo_dir).arg("push");
+
+    // If SSH key is provided, set GIT_SSH_COMMAND to use it
+    if let Some(key_path) = ssh_key {
+        let ssh_command = format!("ssh -i {} -o IdentitiesOnly=yes -o StrictHostKeyChecking=no", key_path.display());
+        push_cmd.env("GIT_SSH_COMMAND", ssh_command);
+    }
+
+    let push_output = push_cmd.output()?;
 
     if !push_output.status.success() {
         return Err(io::Error::new(
@@ -203,6 +224,7 @@ fn handle_publish(
     source: &Path,
     bitstream: &Path,
     target_path: &Path,
+    ssh_key: Option<&Path>,
 ) -> io::Result<()> {
     println!("Publishing bitstream...");
 
@@ -217,7 +239,7 @@ fn handle_publish(
 
     // Clone repository
     println!("Cloning repository: {}", repo);
-    clone_repository(repo, &repo_dir)?;
+    clone_repository(repo, &repo_dir, ssh_key)?;
 
     // Load or create metadata
     let metadata_path = repo_dir.join("bitcache_metadata.json");
@@ -273,7 +295,7 @@ fn handle_publish(
     // Commit and push
     println!("Committing and pushing changes...");
     let commit_msg = format!("Add bitstream for source MD5: {}", md5_hash);
-    commit_and_push(&repo_dir, &commit_msg)?;
+    commit_and_push(&repo_dir, &commit_msg, ssh_key)?;
 
     println!("Successfully published bitstream with MD5: {}", md5_hash);
 
@@ -281,7 +303,7 @@ fn handle_publish(
 }
 
 /// Handle the get subcommand
-fn handle_get(repo: &str, md5: &str) -> io::Result<()> {
+fn handle_get(repo: &str, md5: &str, ssh_key: Option<&Path>) -> io::Result<()> {
     println!("Retrieving bitstream for MD5: {}", md5);
 
     // Create temporary directory for repository
@@ -290,7 +312,7 @@ fn handle_get(repo: &str, md5: &str) -> io::Result<()> {
 
     // Clone repository
     println!("Cloning repository: {}", repo);
-    clone_repository(repo, &repo_dir)?;
+    clone_repository(repo, &repo_dir, ssh_key)?;
 
     // Load metadata
     let metadata_path = repo_dir.join("bitcache_metadata.json");
@@ -349,7 +371,8 @@ fn main() -> io::Result<()> {
             source,
             bitstream,
             path,
-        } => handle_publish(&repo, &source, &bitstream, &path),
-        Commands::Get { repo, md5 } => handle_get(&repo, &md5),
+            ssh_key,
+        } => handle_publish(&repo, &source, &bitstream, &path, ssh_key.as_deref()),
+        Commands::Get { repo, md5, ssh_key } => handle_get(&repo, &md5, ssh_key.as_deref()),
     }
 }
